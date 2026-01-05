@@ -1,6 +1,6 @@
 {
   "name": "azure-devops-mcp",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "MCP server for Azure DevOps Server 2022 / TFS - READ-ONLY access to builds, work items, releases, git, pipelines, and test results",
   "main": "dist/index.js",
   "type": "module",
