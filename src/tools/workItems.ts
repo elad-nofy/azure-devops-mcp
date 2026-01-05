@@ -132,6 +132,128 @@ export const workItemTools = {
 
   // NOTE: create_work_item and update_work_item removed - this MCP server is READ-ONLY
 
+  list_iterations: {
+    description: 'List iterations (sprints) in a project - useful for sprint planning and filtering work items',
+    inputSchema: z.object({
+      project: z.string().optional().describe('Project name'),
+      depth: z.number().optional().default(2).describe('Depth of child iterations to return'),
+    }),
+    handler: async (client: AzureDevOpsClient, args: { project?: string; depth?: number }) => {
+      const witApi = await client.getWorkItemTrackingApi();
+      const project = client.requireProject(args.project);
+
+      const iterations = await witApi.getClassificationNode(
+        project,
+        1, // TreeStructureGroup.Iterations
+        undefined,
+        args.depth || 2
+      );
+
+      // Flatten iterations tree for easier consumption
+      const flattenIterations = (node: typeof iterations, path = ''): Array<{
+        id: number | undefined;
+        name: string | undefined;
+        path: string;
+        hasChildren: boolean;
+        attributes?: {
+          startDate?: Date;
+          finishDate?: Date;
+        };
+      }> => {
+        const currentPath = path ? `${path}\\${node.name}` : node.name || '';
+        const results: Array<{
+          id: number | undefined;
+          name: string | undefined;
+          path: string;
+          hasChildren: boolean;
+          attributes?: {
+            startDate?: Date;
+            finishDate?: Date;
+          };
+        }> = [];
+
+        results.push({
+          id: node.id,
+          name: node.name,
+          path: currentPath,
+          hasChildren: (node.children?.length || 0) > 0,
+          attributes: node.attributes ? {
+            startDate: node.attributes.startDate,
+            finishDate: node.attributes.finishDate,
+          } : undefined,
+        });
+
+        if (node.children) {
+          for (const child of node.children) {
+            results.push(...flattenIterations(child, currentPath));
+          }
+        }
+
+        return results;
+      };
+
+      return {
+        project,
+        iterations: flattenIterations(iterations),
+      };
+    },
+  },
+
+  list_areas: {
+    description: 'List area paths in a project - useful for organizing and filtering work items by team or component',
+    inputSchema: z.object({
+      project: z.string().optional().describe('Project name'),
+      depth: z.number().optional().default(2).describe('Depth of child areas to return'),
+    }),
+    handler: async (client: AzureDevOpsClient, args: { project?: string; depth?: number }) => {
+      const witApi = await client.getWorkItemTrackingApi();
+      const project = client.requireProject(args.project);
+
+      const areas = await witApi.getClassificationNode(
+        project,
+        0, // TreeStructureGroup.Areas
+        undefined,
+        args.depth || 2
+      );
+
+      // Flatten areas tree
+      const flattenAreas = (node: typeof areas, path = ''): Array<{
+        id: number | undefined;
+        name: string | undefined;
+        path: string;
+        hasChildren: boolean;
+      }> => {
+        const currentPath = path ? `${path}\\${node.name}` : node.name || '';
+        const results: Array<{
+          id: number | undefined;
+          name: string | undefined;
+          path: string;
+          hasChildren: boolean;
+        }> = [];
+
+        results.push({
+          id: node.id,
+          name: node.name,
+          path: currentPath,
+          hasChildren: (node.children?.length || 0) > 0,
+        });
+
+        if (node.children) {
+          for (const child of node.children) {
+            results.push(...flattenAreas(child, currentPath));
+          }
+        }
+
+        return results;
+      };
+
+      return {
+        project,
+        areas: flattenAreas(areas),
+      };
+    },
+  },
+
   list_work_item_types: {
     description: 'List available work item types in a project',
     inputSchema: z.object({

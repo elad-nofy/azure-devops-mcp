@@ -8,6 +8,7 @@ import {
   type Tool,
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 
 import { loadConfig } from './config.js';
 import { AzureDevOpsClient } from './azureDevOpsClient.js';
@@ -33,79 +34,6 @@ const allTools = {
 };
 
 type ToolName = keyof typeof allTools;
-
-// Convert Zod schema to JSON Schema for MCP
-function zodToJsonSchema(schema: z.ZodTypeAny): Record<string, unknown> {
-  if (schema instanceof z.ZodObject) {
-    const shape = schema.shape;
-    const properties: Record<string, unknown> = {};
-    const required: string[] = [];
-
-    for (const [key, value] of Object.entries(shape)) {
-      const zodValue = value as z.ZodTypeAny;
-      properties[key] = zodToJsonSchema(zodValue);
-
-      // Check if required (not optional)
-      if (!(zodValue instanceof z.ZodOptional) && !(zodValue instanceof z.ZodDefault)) {
-        required.push(key);
-      }
-    }
-
-    return {
-      type: 'object',
-      properties,
-      required: required.length > 0 ? required : undefined,
-    };
-  }
-
-  if (schema instanceof z.ZodOptional) {
-    return zodToJsonSchema(schema.unwrap());
-  }
-
-  if (schema instanceof z.ZodDefault) {
-    const inner = zodToJsonSchema(schema._def.innerType);
-    return { ...inner, default: schema._def.defaultValue() };
-  }
-
-  if (schema instanceof z.ZodString) {
-    return { type: 'string', description: schema.description };
-  }
-
-  if (schema instanceof z.ZodNumber) {
-    return { type: 'number', description: schema.description };
-  }
-
-  if (schema instanceof z.ZodBoolean) {
-    return { type: 'boolean', description: schema.description };
-  }
-
-  if (schema instanceof z.ZodArray) {
-    return {
-      type: 'array',
-      items: zodToJsonSchema(schema.element),
-      description: schema.description,
-    };
-  }
-
-  if (schema instanceof z.ZodEnum) {
-    return {
-      type: 'string',
-      enum: schema.options,
-      description: schema.description,
-    };
-  }
-
-  if (schema instanceof z.ZodRecord) {
-    return {
-      type: 'object',
-      additionalProperties: zodToJsonSchema(schema.valueSchema),
-      description: schema.description,
-    };
-  }
-
-  // Default fallback
-  return { type: 'object' };
-}
 
 async function main(): Promise<void> {
   // Load configuration
@@ -142,9 +70,16 @@ async function main(): Promise<void> {
     const tools: Tool[] = [];
 
     for (const [name, tool] of Object.entries(allTools)) {
-      const inputSchema = tool.inputSchema
-        ? zodToJsonSchema(tool.inputSchema as z.ZodTypeAny)
-        : { type: 'object', properties: {} };
+      let inputSchema: Record<string, unknown> = { type: 'object', properties: {} };
+
+      if (tool.inputSchema) {
+        const fullSchema = zodToJsonSchema(tool.inputSchema as z.ZodTypeAny, {
+          $refStrategy: 'none',
+        }) as Record<string, unknown>;
+        // Remove $schema as MCP doesn't need it
+        const { $schema, ...schema } = fullSchema;
+        inputSchema = schema;
+      }
 
       tools.push({
         name,

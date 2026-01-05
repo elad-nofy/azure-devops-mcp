@@ -516,6 +516,68 @@ export const gitTools = {
     },
   },
 
+  get_file_content: {
+    description: 'Get the content of a file from a repository at a specific branch or commit',
+    inputSchema: z.object({
+      project: z.string().optional().describe('Project name'),
+      repository: z.string().describe('Repository name or ID'),
+      path: z.string().describe('File path (e.g., "/src/index.ts")'),
+      branch: z.string().optional().describe('Branch name (e.g., "main")'),
+      commitId: z.string().optional().describe('Specific commit SHA (overrides branch)'),
+    }),
+    handler: async (client: AzureDevOpsClient, args: {
+      project?: string;
+      repository: string;
+      path: string;
+      branch?: string;
+      commitId?: string;
+    }) => {
+      const gitApi = await client.getGitApi();
+      const project = client.requireProject(args.project);
+
+      // Build version descriptor
+      let versionDescriptor: { version: string; versionType: number } | undefined;
+      if (args.commitId) {
+        versionDescriptor = { version: args.commitId, versionType: 2 }; // 2 = commit
+      } else if (args.branch) {
+        versionDescriptor = { version: args.branch.replace('refs/heads/', ''), versionType: 0 }; // 0 = branch
+      }
+
+      try {
+        const content = await gitApi.getItemContent(
+          args.repository,
+          args.path,
+          project,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          versionDescriptor
+        );
+
+        // Convert stream to string
+        const chunks: Buffer[] = [];
+        for await (const chunk of content) {
+          chunks.push(Buffer.from(chunk));
+        }
+        const fileContent = Buffer.concat(chunks).toString('utf-8');
+
+        return {
+          path: args.path,
+          repository: args.repository,
+          branch: args.branch,
+          commitId: args.commitId,
+          size: fileContent.length,
+          content: fileContent,
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to get file content: ${message}. Check if the path exists and you have access.`);
+      }
+    },
+  },
+
   get_prs_for_work_item: {
     description: 'Find pull requests linked to a work item',
     inputSchema: z.object({

@@ -52,17 +52,37 @@ npm run build
 
 #### Claude Code CLI
 
-Add to your project's `.mcp.json` or global settings:
+Add to your global settings (`~/.claude.json` on macOS/Linux, `%USERPROFILE%\.claude.json` on Windows):
 
+**Windows:**
+```json
+{
+  "mcpServers": {
+    "azure-devops": {
+      "command": "cmd",
+      "args": ["/c", "npx", "azure-devops-mcp"],
+      "env": {
+        "AZURE_DEVOPS_URL": "http://your-tfs-server:8080/tfs",
+        "AZURE_DEVOPS_PAT": "your-personal-access-token",
+        "AZURE_DEVOPS_COLLECTION": "YourCollection",
+        "AZURE_DEVOPS_PROJECT": "YourDefaultProject"
+      }
+    }
+  }
+}
+```
+
+**macOS / Linux:**
 ```json
 {
   "mcpServers": {
     "azure-devops": {
       "command": "npx",
-      "args": ["azure-devops-mcp@latest"],
+      "args": ["azure-devops-mcp"],
       "env": {
-        "AZURE_DEVOPS_URL": "http://your-tfs-server:8080/tfs/YourCollection",
+        "AZURE_DEVOPS_URL": "http://your-tfs-server:8080/tfs",
         "AZURE_DEVOPS_PAT": "your-personal-access-token",
+        "AZURE_DEVOPS_COLLECTION": "YourCollection",
         "AZURE_DEVOPS_PROJECT": "YourDefaultProject"
       }
     }
@@ -78,8 +98,9 @@ Add similar configuration to the extension's MCP settings.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `AZURE_DEVOPS_URL` | Yes | Server URL including collection (e.g., `http://tfs:8080/tfs/DefaultCollection`) |
+| `AZURE_DEVOPS_URL` | Yes | Server base URL (e.g., `http://tfs:8080/tfs`) |
 | `AZURE_DEVOPS_PAT` | Yes | Personal Access Token |
+| `AZURE_DEVOPS_COLLECTION` | No | Collection name (default: `DefaultCollection`) |
 | `AZURE_DEVOPS_PROJECT` | No | Default project for commands |
 
 ## Available Tools
@@ -87,6 +108,7 @@ Add similar configuration to the extension's MCP settings.
 ### Projects
 | Tool | Description |
 |------|-------------|
+| `test_connection` | Test connection to Azure DevOps and verify authentication |
 | `list_projects` | List all projects in the organization |
 | `get_project` | Get detailed project information |
 
@@ -102,6 +124,7 @@ Add similar configuration to the extension's MCP settings.
 | `get_pull_request` | Get PR details with comments |
 | `compare_branches` | Compare two branches (regression analysis) |
 | `search_code` | Search for text in repository files |
+| `get_file_content` | Get file content from a repo at a specific branch/commit |
 | `get_commits_for_work_item` | Find commits referencing a work item |
 | `get_prs_for_work_item` | Find PRs linked to a work item |
 
@@ -120,6 +143,8 @@ Add similar configuration to the extension's MCP settings.
 | `query_work_items` | Search work items (WIQL or filters) |
 | `get_work_item` | Get work item details |
 | `list_work_item_types` | List available work item types |
+| `list_iterations` | List iterations/sprints in a project |
+| `list_areas` | List area paths in a project |
 
 ### Releases
 | Tool | Description |
