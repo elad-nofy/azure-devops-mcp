@@ -29,7 +29,7 @@ npx azure-devops-mcp@latest
 ### Option 2: Clone and Build
 
 ```bash
-git clone https://github.com/your-username/azure-devops-mcp.git
+git clone https://github.com/elad-nofy/azure-devops-mcp.git
 cd azure-devops-mcp
 npm install
 npm run build
