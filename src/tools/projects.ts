@@ -4,7 +4,7 @@ import type { AzureDevOpsClient } from '../azureDevOpsClient.js';
 export const projectTools = {
   test_connection: {
     description: 'Test the connection to Azure DevOps Server and verify authentication',
-    inputSchema: z.object({}).optional(),
+    inputSchema: z.object({}),
     handler: async (client: AzureDevOpsClient) => {
       const startTime = Date.now();
 
@@ -45,7 +45,7 @@ export const projectTools = {
 
   list_projects: {
     description: 'List all projects in the Azure DevOps organization/collection',
-    inputSchema: z.object({}).optional(),
+    inputSchema: z.object({}),
     handler: async (client: AzureDevOpsClient) => {
       const coreApi = await client.getCoreApi();
       const projects = await coreApi.getProjects();
