@@ -13,7 +13,7 @@ export const workItemTools = {
       areaPath: z.string().optional().describe('Filter by area path'),
       iterationPath: z.string().optional().describe('Filter by iteration path'),
       tags: z.string().optional().describe('Filter by tag'),
-      top: z.number().optional().default(50).describe('Max items to return'),
+      top: z.number().optional().default(200).describe('Max items to return'),
     }),
     handler: async (client: AzureDevOpsClient, args: {
       project?: string;
@@ -60,7 +60,7 @@ export const workItemTools = {
                 ORDER BY [System.ChangedDate] DESC`;
       }
 
-      const queryResult = await witApi.queryByWiql({ query: wiql }, { project }, undefined, args.top || 50);
+      const queryResult = await witApi.queryByWiql({ query: wiql }, { project }, undefined, args.top || 200);
 
       if (!queryResult.workItems || queryResult.workItems.length === 0) {
         return [];
